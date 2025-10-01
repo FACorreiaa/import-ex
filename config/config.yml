@@ -1,0 +1,12 @@
+run_immediately: false
+realdata_clients:
+  - name: "krenauer"
+    base_url: "https://online.krenauer.at/acureal/webreal.acu"
+    username: "idwell"
+    submit_value: "register"
+    location_value: "webreal.acu?id=01"
+    client_company_id: "ed8d1964-4cc6-4e8c-a112-4cf3777d7ef0"
+    nonObjectSpecificAccountNos: false
+    object_endpoint_id: 80
+    glAccount_endpoint_id: 83
+    partner_endpoint_id: 82
