@@ -24,7 +24,8 @@ defmodule Financex.MixProject do
     [
       {:req, "~> 0.5.0"},
       {:yaml_elixir, "~> 2.9"},
-      {:plug, "~> 1.0"}
+      {:plug, "~> 1.0"},
+      {:sweet_xml, "~> 0.7"}
     ]
   end
 end

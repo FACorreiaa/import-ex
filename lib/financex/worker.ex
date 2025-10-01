@@ -41,6 +41,7 @@ defmodule Financex.Worker do
 
   require Logger
 
+  alias Financex.API.RealData.Import
   alias Financex.Config.RealDataClientConfig
 
   # Constants matching the Go implementation
@@ -164,7 +165,7 @@ defmodule Financex.Worker do
     end
   end
 
-  # Executes the actual import job by fetching data from all endpoints
+  # Executes the actual import job using the Import module
   @spec execute_job(RealDataClientConfig.t()) :: :ok | {:error, term()}
   defp execute_job(%RealDataClientConfig{} = client) do
     Logger.debug("Executing import for client: #{client.name}",
@@ -172,86 +173,7 @@ defmodule Financex.Worker do
       base_url: client.base_url
     )
 
-    # Convert config to map format expected by RealDataAPI
-    config_map = client_config_to_map(client)
-
-    # Fetch data from all three endpoints
-    with {:ok, object_data} <-
-           fetch_endpoint(config_map, client.object_endpoint_id, "objects", client.name),
-         {:ok, gl_data} <-
-           fetch_endpoint(config_map, client.gl_account_endpoint_id, "GL accounts", client.name),
-         {:ok, partner_data} <-
-           fetch_endpoint(config_map, client.partner_endpoint_id, "partners", client.name) do
-      Logger.info("Successfully fetched all endpoint data for client: #{client.name}",
-        object_bytes: byte_size(object_data),
-        gl_bytes: byte_size(gl_data),
-        partner_bytes: byte_size(partner_data),
-        total_bytes: byte_size(object_data) + byte_size(gl_data) + byte_size(partner_data)
-      )
-
-      # TODO: Process and store the data
-      # For now, we just log success
-      :ok
-    else
-      {:error, reason} = error ->
-        Logger.error("Failed to execute import for client: #{client.name}",
-          error: inspect(reason)
-        )
-
-        error
-    end
-  end
-
-  # Converts RealDataClientConfig struct to map format for RealDataAPI
-  @spec client_config_to_map(RealDataClientConfig.t()) :: map()
-  defp client_config_to_map(client) do
-    %{
-      "name" => client.name,
-      "base_url" => client.base_url,
-      "username" => client.username,
-      "password" => client.password,
-      "submit_value" => client.submit_value,
-      "location_value" => client.location_value,
-      "client_company_id" => client.client_company_id,
-      "nonObjectSpecificAccountNos" => client.non_object_specific_account_nos,
-      "object_endpoint_id" => client.object_endpoint_id,
-      "glAccount_endpoint_id" => client.gl_account_endpoint_id,
-      "partner_endpoint_id" => client.partner_endpoint_id
-    }
-  end
-
-  # Fetches data from a specific endpoint with logging
-  @spec fetch_endpoint(map(), integer(), String.t(), String.t()) ::
-          {:ok, binary()} | {:error, term()}
-  defp fetch_endpoint(config, endpoint_id, endpoint_name, client_name) do
-    Logger.debug("Fetching #{endpoint_name} data",
-      client: client_name,
-      endpoint_id: endpoint_id
-    )
-
-    start_time = System.monotonic_time(:millisecond)
-
-    case RealDataAPI.fetch(config, endpoint_id) do
-      {:ok, data} ->
-        duration = System.monotonic_time(:millisecond) - start_time
-
-        Logger.debug("Successfully fetched #{endpoint_name} data",
-          client: client_name,
-          endpoint_id: endpoint_id,
-          bytes: byte_size(data),
-          duration_ms: duration
-        )
-
-        {:ok, data}
-
-      {:error, reason} = error ->
-        Logger.error("Failed to fetch #{endpoint_name} data",
-          client: client_name,
-          endpoint_id: endpoint_id,
-          error: inspect(reason)
-        )
-
-        error
-    end
+    # Use the Import module to import all data
+    Import.import_master_data(client)
   end
 end
